@@ -1,12 +1,39 @@
 {
-  "name": "zolvency-sdk",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "@zolvency/sdk",
+  "version": "0.1.0",
+  "description": "Professional TypeScript SDK for Zolvency Protocol on Stellar & EVM",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --watch --dts",
+    "test": "vitest run",
+    "lint": "tsc --noEmit"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "keywords": [
+    "stellar",
+    "soroban",
+    "sdk",
+    "reputation",
+    "sbt",
+    "rwa",
+    "zolvency"
+  ],
+  "author": "Felipe Nunes",
+  "license": "MIT",
+  "devDependencies": {
+    "@stellar/stellar-sdk": "^13.0.0",
+    "@types/node": "^20.11.0",
+    "tslib": "^2.6.2",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.1"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^13.0.0"
+  }
 }
