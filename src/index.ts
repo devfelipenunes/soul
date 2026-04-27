@@ -66,3 +66,4 @@ export * from "./errors";
 export * from "./cache/MemoryCache";
 export * from "./wallets/WalletAdapter";
 export * from "./tx/TransactionHandler";
+export * from "./plugins/SpokePlugin";
