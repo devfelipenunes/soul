@@ -64,3 +64,4 @@ export const PRESETS = {
 
 export * from "./errors";
 export * from "./cache/MemoryCache";
+export * from "./wallets/WalletAdapter";
