@@ -1,12 +1,14 @@
-import { SorobanRpc, Networks } from "@stellar/stellar-sdk";
+import { SorobanRpc, Networks, Transaction } from "@stellar/stellar-sdk";
 import * as Registry from "../packages/zolvency-registry";
-import * as Identity from "../packages/github-identity";
+import { HubConnectionError, ReputationLockedError } from "./errors";
 
 export interface ZolvencyConfig {
   rpcUrl: string;
   networkPassphrase: string;
   hubAddress: string;
 }
+
+export type SignerProvider = (tx: Transaction) => Promise<Transaction>;
 
 export class ZolvencySDK {
   public registry: Registry.Client;
@@ -23,28 +25,31 @@ export class ZolvencySDK {
 
   /**
    * Get the aggregate reputation score for a user.
-   * Returns a map of token types and their IDs.
    */
   async getScore(userAddress: string) {
     try {
       const reputation = await this.registry.get_user_reputation({ user: userAddress });
       return reputation;
-    } catch (error) {
-      console.error("Error fetching Zolvency score:", error);
-      throw error;
+    } catch (error: any) {
+      throw new HubConnectionError(error.message);
     }
   }
 
   /**
-   * Lock a user's reputation for a specific duration.
-   * Requires the caller to be an authorized Lending protocol.
+   * Check if a user's reputation is currently locked.
    */
-  async lockReputation(userAddress: string, durationSeconds: number) {
-    // Current time + duration
+  async isLocked(userAddress: string): Promise<boolean> {
+    const locked = await this.registry.is_locked({ user: userAddress });
+    return locked;
+  }
+
+  /**
+   * Lock a user's reputation. Requires an authorized signer.
+   */
+  async lockReputation(userAddress: string, durationSeconds: number, signer: SignerProvider) {
     const unlockTimestamp = BigInt(Math.floor(Date.now() / 1000) + durationSeconds);
     
-    // Note: This requires signing. The SDK would typically be used with a wallet provider.
-    // This is a placeholder for the logic.
+    // Logic for building and signing the lock transaction would go here
     console.log(`Requesting lock for ${userAddress} until ${unlockTimestamp}`);
   }
 }
@@ -53,6 +58,8 @@ export const PRESETS = {
   TESTNET: {
     rpcUrl: "https://soroban-testnet.stellar.org",
     networkPassphrase: Networks.TESTNET,
-    hubAddress: "C...", // Replace with real ID
+    hubAddress: "", 
   }
 };
+
+export * from "./errors";
