@@ -1,4 +1,6 @@
 import { SorobanRpc, Networks } from "@stellar/stellar-sdk";
+import * as Registry from "../packages/zolvency-registry";
+import * as Identity from "../packages/github-identity";
 
 export interface ZolvencyConfig {
   rpcUrl: string;
@@ -7,27 +9,43 @@ export interface ZolvencyConfig {
 }
 
 export class ZolvencySDK {
-  private rpc: SorobanRpc.Server;
+  public registry: Registry.Client;
   private config: ZolvencyConfig;
 
   constructor(config: ZolvencyConfig) {
     this.config = config;
-    this.rpc = new SorobanRpc.Server(config.rpcUrl);
+    this.registry = new Registry.Client({
+      rpcUrl: config.rpcUrl,
+      networkPassphrase: config.networkPassphrase,
+      contractId: config.hubAddress,
+    });
   }
 
   /**
    * Get the aggregate reputation score for a user.
+   * Returns a map of token types and their IDs.
    */
   async getScore(userAddress: string) {
-    console.log(`Fetching score for ${userAddress} from Hub at ${this.config.hubAddress}`);
-    return { score: 0, tiers: [] };
+    try {
+      const reputation = await this.registry.get_user_reputation({ user: userAddress });
+      return reputation;
+    } catch (error) {
+      console.error("Error fetching Zolvency score:", error);
+      throw error;
+    }
   }
 
   /**
    * Lock a user's reputation for a specific duration.
+   * Requires the caller to be an authorized Lending protocol.
    */
   async lockReputation(userAddress: string, durationSeconds: number) {
-    console.log(`Locking reputation for ${userAddress} for ${durationSeconds}s`);
+    // Current time + duration
+    const unlockTimestamp = BigInt(Math.floor(Date.now() / 1000) + durationSeconds);
+    
+    // Note: This requires signing. The SDK would typically be used with a wallet provider.
+    // This is a placeholder for the logic.
+    console.log(`Requesting lock for ${userAddress} until ${unlockTimestamp}`);
   }
 }
 
@@ -35,11 +53,6 @@ export const PRESETS = {
   TESTNET: {
     rpcUrl: "https://soroban-testnet.stellar.org",
     networkPassphrase: Networks.TESTNET,
-    hubAddress: "", 
-  },
-  PUBLIC: {
-    rpcUrl: "https://soroban-rpc.mainnet.stellar.org",
-    networkPassphrase: Networks.PUBLIC,
-    hubAddress: "", 
+    hubAddress: "C...", // Replace with real ID
   }
 };
