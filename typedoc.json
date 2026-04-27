@@ -1,0 +1,6 @@
+{
+  "entryPoints": ["src/index.ts"],
+  "out": "docs",
+  "name": "Zolvency SDK API Reference",
+  "excludePrivate": true
+}
