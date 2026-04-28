@@ -1,7 +1,7 @@
-import { SorobanRpc, Transaction } from "@stellar/stellar-sdk";
+import { rpc, Transaction } from "@stellar/stellar-sdk";
 
 export class TransactionHandler {
-  constructor(private rpc: SorobanRpc.Server) {}
+  constructor(private rpc: rpc.Server) {}
 
   /**
    * Simula a transação no Soroban RPC para estimar gás e prever falhas.
@@ -17,10 +17,13 @@ export class TransactionHandler {
     tx: Transaction, 
     pollIntervalMs = 2000, 
     maxAttempts = 15
-  ): Promise<SorobanRpc.Api.GetTransactionResponse> {
+  ): Promise<rpc.Api.GetTransactionResponse> {
     const response = await this.rpc.sendTransaction(tx);
+    
+    // Check if the transaction was sent successfully
     if (response.status === "ERROR") {
-      throw new Error(`Transaction submission failed: ${response.errorResultXdr}`);
+      // In SDK v13+, the error details might be in errorResult or other fields
+      throw new Error(`Transaction submission failed: ${JSON.stringify(response)}`);
     }
 
     let attempts = 0;

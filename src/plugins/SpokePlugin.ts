@@ -1,4 +1,4 @@
-import { SorobanRpc } from "@stellar/stellar-sdk";
+import { rpc } from "@stellar/stellar-sdk";
 
 /**
  * Interface para estender o SDK com novos tipos de SBTs (ex: TaxSBT, MachineHealthSBT).
@@ -6,5 +6,5 @@ import { SorobanRpc } from "@stellar/stellar-sdk";
 export interface SpokePlugin {
   name: string;
   contractId: string;
-  initialize(rpc: SorobanRpc.Server): void;
+  initialize(rpc: rpc.Server): void;
 }
