@@ -1,3 +1,11 @@
+import { Buffer } from "buffer";
+import process from "process";
+
+if (typeof window !== "undefined") {
+  window.Buffer = window.Buffer || Buffer;
+  (window as any).process = (window as any).process || process;
+}
+
 import { rpc, Networks, Address } from "@stellar/stellar-sdk";
 import * as Registry from "./contracts/registry";
 import * as Identity from "./contracts/identity";
@@ -50,6 +58,7 @@ export class ZolvencySDK {
   private plugins: Map<string, SpokePlugin> = new Map();
   private identityClients: Map<string, Identity.Client> = new Map();
   private passkeyManager: PasskeyManager;
+  private activeAddress?: string;
 
   constructor(config?: Partial<ZolvencyConfig>) {
     this.config = {
@@ -86,7 +95,7 @@ export class ZolvencySDK {
       relayerUrl: this.config.relayerUrl || "/api/passkey",
       soulContractId: this.config.soulContractId || "CAMORDN4NSRVEJAYX6KVD32JZXOYQ67G7HID6G3HX6S3A424XY7GK2ZC",
       appName: "Zolvency",
-    });
+    }, (address) => this.setActiveAddress(address));
 
     if (this.config.githubAddress) {
       this.use(new GitHubSourcePlugin(this.config.githubAddress));
@@ -96,6 +105,21 @@ export class ZolvencySDK {
   static fromEnv(): ZolvencySDK {
     // Agora o fromEnv apenas inicializa com os defaults (ou process.env se disponível globalmente)
     return new ZolvencySDK();
+  }
+
+  /**
+   * Define o endereço ativo para chamadas sem parâmetros.
+   */
+  setActiveAddress(address: string) {
+    this.activeAddress = address;
+    return this;
+  }
+
+  /**
+   * Retorna o endereço atualmente conectado no SDK.
+   */
+  getAddress(): string | undefined {
+    return this.activeAddress;
   }
 
   use(plugin: SpokePlugin) {
@@ -112,16 +136,21 @@ export class ZolvencySDK {
     return this.plugins.get(name) as T;
   }
 
-  async getScore(userAddress: string, skipCache = false): Promise<ReputationSummary> {
-    if (!this.config.hubAddress) throw new HubConnectionError("Hub not configured");
+  async getScore(userAddress?: string, skipCache = false): Promise<ReputationSummary> {
+    const target = userAddress || this.activeAddress;
+    if (!target) throw new Error("No address provided and no active session found. Call connect() first or provide an address.");
+
+    const hubAddress = this.config.hubAddress;
+    if (!hubAddress) throw new HubConnectionError("Zolvency Hub address is not configured.");
 
     if (!skipCache) {
-      const cached = this.scoreCache.get(userAddress);
+      const cached = this.scoreCache.get(target);
       if (cached) return cached;
     }
 
     try {
-      const user = new Address(userAddress);
+      const user = new Address(target);
+      // O usuário não precisa saber que isso chama o hubAddress internamente
       const reputationTx = await this.registry.get_user_reputation({ 
         user: user.toString()
       });
@@ -129,10 +158,10 @@ export class ZolvencySDK {
       const rawReputation = (reputationTx as any).result;
       const scores: Record<string, any> = {};
 
-      // Parse reputation sources (simplified)
       const sources = this.normalizeReputationSources(rawReputation);
 
       for (const source of sources) {
+        // Mapeia automaticamente para os plugins internos (GitHub, etc)
         const plugin = this.getPlugin(source.name);
         let details = null;
         if (plugin && (plugin as any).getDetails) {
@@ -142,36 +171,42 @@ export class ZolvencySDK {
       }
 
       const finalResult: ReputationSummary = {
-        user: userAddress,
+        user: target,
         timestamp: Date.now(),
         scores,
         totalSources: Object.keys(scores).length
       };
 
-      this.scoreCache.set(userAddress, finalResult);
+      this.scoreCache.set(target, finalResult);
       return finalResult;
     } catch (error: any) {
-      throw new HubConnectionError(`[Registry] Failed to fetch score: ${error.message}`);
+      throw new HubConnectionError(`[Zolvency] Failed to fetch reputation for ${target}: ${error.message}`);
     }
   }
 
-  async hasIdentity(userAddress: string, contractId?: string): Promise<boolean> {
-    const client = this.getIdentityClient(contractId);
-    const user = new Address(userAddress);
+  async hasIdentity(userAddress?: string): Promise<boolean> {
+    const target = userAddress || this.activeAddress;
+    if (!target) throw new Error("No address provided and no active session found.");
+
+    const client = this.getIdentityClient();
+    const user = new Address(target);
     const tx = await client.has_identity({ user: user.toString() });
     return (tx as any).result;
   }
 
-  async getUserToken(userAddress: string, contractId?: string) {
-    const client = this.getIdentityClient(contractId);
-    const user = new Address(userAddress);
+  async getUserToken(userAddress?: string) {
+    const target = userAddress || this.activeAddress;
+    if (!target) throw new Error("No address provided and no active session found.");
+
+    const client = this.getIdentityClient();
+    const user = new Address(target);
     const tx = await client.get_user_token({ user: user.toString() });
     return this.unwrapResult<bigint>((tx as any).result, "get_user_token");
   }
 
-  async getGithubIdentityDetails(tokenId: string | number | bigint, contractId?: string): Promise<GithubIdentityDetails | null> {
+  async getGithubIdentityDetails(tokenId: string | number | bigint): Promise<GithubIdentityDetails | null> {
     try {
-      const client = this.getIdentityClient(contractId);
+      const client = this.getIdentityClient();
       const tx = await client.get_token_data({ token_id: BigInt(tokenId) });
       const data = this.unwrapResult<any>((tx as any).result, "get_token_data");
       
@@ -230,7 +265,7 @@ export const PRESETS = {
     hubAddress: "CAAFVZRKABOYNJV4GSFAWXSBX7F5VM3EKJ7K6RVKFVN2Z36VRKPFH3SV",
     githubAddress: "CCGK3D3WGLQWOMDDQOM2V22PZXET7PAGNGMBW6WQ7GJNVZW4B2DLUZFA",
     relayerUrl: "https://zolvency.com/api/passkey",
-    walletWasmHash: "e63f90564d852a3a5223030f14643f0e0f3a5223030f14643f0e0f3a5223030",
+    walletWasmHash: "af9524f42bf64c454483758d1450051e8a212b79b56b2ce38118b59c49b88c27",
     soulContractId: "CAMORDN4NSRVEJAYX6KVD32JZXOYQ67G7HID6G3HX6S3A424XY7GK2ZC",
   }
 };

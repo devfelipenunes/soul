@@ -14,6 +14,7 @@ interface WorkbenchState {
     rpcUrl: string;
     networkPassphrase: string;
     hubAddress: string;
+    relayerUrl: string;
   };
   setConfig: (config: any) => void;
   sdk: ZolvencySDK | null;
@@ -28,7 +29,8 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState({
     rpcUrl: PRESETS.TESTNET.rpcUrl,
     networkPassphrase: PRESETS.TESTNET.networkPassphrase,
-    hubAddress: 'CAAFVZRKABOYNJV4GSFAWXSBX7F5VM3EKJ7K6RVKFVN2Z36VRKPFH3SV'
+    hubAddress: 'CAAFVZRKABOYNJV4GSFAWXSBX7F5VM3EKJ7K6RVKFVN2Z36VRKPFH3SV',
+    relayerUrl: '/api/passkey' // Usa o Proxy do Vite para evitar CORS
   });
   
   const [logs, setLogs] = useState<TraceLog[]>([]);

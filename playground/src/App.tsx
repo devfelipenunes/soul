@@ -3,19 +3,21 @@ import { Settings, Play, Terminal, Trash2, Search, Lock, ShieldCheck, Database }
 import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
 import './index.css';
 
-function GetSignerCard() {
+function ConnectSoulCard() {
   const { sdk, addLog } = useWorkbench();
+  const [username, setUsername] = React.useState('felipe');
   const [loading, setLoading] = React.useState(false);
 
-  const handleFetch = async () => {
+  const handleConnect = async () => {
     if (!sdk) return;
     setLoading(true);
-    addLog('info', 'Calling getSigner()...');
+    addLog('info', `Starting Atomic Onboarding for: ${username}...`);
     try {
-      const result = await sdk.getSigner();
-      addLog('success', 'getSigner resolved', { adminSigner: result });
+      // ESTE É O MÉTODO QUE CHAMA A DIGITAL/PASSKEY E FAZ O FLOW COMPLETO
+      const session = await sdk.identity.connect(username);
+      addLog('success', 'Soul Connected! Wallet deployed and Token minted.', session);
     } catch (e: any) {
-      addLog('error', 'getSigner failed', { error: e.message });
+      addLog('error', 'Onboarding failed', { error: e.message });
     } finally {
       setLoading(false);
     }
@@ -23,55 +25,16 @@ function GetSignerCard() {
 
   return (
     <div className="card">
-      <div className="card-title"><ShieldCheck size={18} /> Get Hub Admin Signer</div>
+      <div className="card-title"><ShieldCheck size={18} /> Soul Connect (Passkey)</div>
       <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-        Fetch the administrative signer of the current Zolvency Hub contract.
+        One-click: Create Passkey -&gt; Deploy Wallet -&gt; Mint Soulbound Token.
       </p>
-      <button className="btn btn-primary" onClick={handleFetch} disabled={loading}>
-        {loading ? 'Fetching...' : 'Execute getSigner()'}
-      </button>
-    </div>
-  );
-}
-
-function RegisterSourceCard() {
-  const { sdk, addLog } = useWorkbench();
-  const [adminKey, setAdminKey] = React.useState('');
-  const [tokenAddress, setTokenAddress] = React.useState('CCGK3D3WGLQWOMDDQOM2V22PZXET7PAGNGMBW6WQ7GJNVZW4B2DLUZFA');
-  const [loading, setLoading] = React.useState(false);
-
-  const handleRegister = async () => {
-    if (!sdk) return;
-    setLoading(true);
-    addLog('info', `Attempting to register source: ${tokenAddress.substring(0, 8)}...`);
-    try {
-      // Direct call to registry client (requires signer/wallet integration in a real scenario)
-      addLog('info', 'Note: Registration usually requires admin signature. Simulation only if no wallet connected.');
-      const tx = await sdk.registry.register_token({ 
-        admin: adminKey || 'G... (Admin Public Key)', 
-        token_contract: tokenAddress 
-      });
-      addLog('success', 'register_token transaction built/simulated', tx);
-    } catch (e: any) {
-      addLog('error', 'register_token failed', { error: e.message });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="card">
-      <div className="card-title"><Database size={18} /> Register Token Source</div>
       <div className="input-group">
-        <label className="input-label">Admin Public Key</label>
-        <input className="input-field" value={adminKey} onChange={e => setAdminKey(e.target.value)} placeholder="G..." />
+        <label className="input-label">Username</label>
+        <input className="input-field" value={username} onChange={e => setUsername(e.target.value)} />
       </div>
-      <div className="input-group">
-        <label className="input-label">Token Contract ID</label>
-        <input className="input-field" value={tokenAddress} onChange={e => setTokenAddress(e.target.value)} />
-      </div>
-      <button className="btn btn-primary" onClick={handleRegister} disabled={loading}>
-        {loading ? 'Processing...' : 'Register Source'}
+      <button className="btn btn-primary" onClick={handleConnect} disabled={loading}>
+        {loading ? 'Authenticating...' : 'Connect Identity'}
       </button>
     </div>
   );
@@ -79,20 +42,22 @@ function RegisterSourceCard() {
 
 function GetScoreCard() {
   const { sdk, addLog } = useWorkbench();
-  const [address, setAddress] = React.useState('GAK35OYQKEHPETRCH2JW64OYYJH6WMSBDVRG2SFZ4XJLQ4OHOM45GV75');
+  const [address, setAddress] = React.useState('');
   const [loading, setLoading] = React.useState(false);
 
   const handleFetch = async () => {
     if (!sdk) return;
     setLoading(true);
-    addLog('info', `Calling getScore(${address.substring(0, 8)}...)`);
+    const target = address || 'Active Session';
+    addLog('info', `Calling getScore(${target})`);
     try {
       const start = Date.now();
-      const score = await sdk.getScore(address);
+      // Se address estiver vazio, usa o endereço logado automaticamente!
+      const score = await sdk.getScore(address || undefined);
       const duration = Date.now() - start;
       addLog('success', `getScore resolved in ${duration}ms`, score);
     } catch (e: any) {
-      addLog('error', `getScore failed`, { error: e.message, stack: e.stack });
+      addLog('error', `getScore failed`, { error: e.message });
     } finally {
       setLoading(false);
     }
@@ -102,46 +67,11 @@ function GetScoreCard() {
     <div className="card">
       <div className="card-title"><Search size={18} /> Get Reputation Score</div>
       <div className="input-group">
-        <label className="input-label">User Stellar Address</label>
-        <input className="input-field" value={address} onChange={e => setAddress(e.target.value)} />
+        <label className="input-label">User Address (Optional if connected)</label>
+        <input className="input-field" value={address} onChange={e => setAddress(e.target.value)} placeholder="Leave empty for active user" />
       </div>
       <button className="btn btn-primary" onClick={handleFetch} disabled={loading}>
         {loading ? 'Fetching...' : 'Execute getScore()'}
-      </button>
-    </div>
-  );
-}
-
-function IsLockedCard() {
-  const { sdk, addLog } = useWorkbench();
-  const [address, setAddress] = React.useState('GDY6PAWAKXFMA2X2M6GMLBBSINMCWABT5XZLFAIXXBVVOOW727GOHV57');
-  const [loading, setLoading] = React.useState(false);
-
-  const handleFetch = async () => {
-    if (!sdk) return;
-    setLoading(true);
-    addLog('info', `Calling isLocked(${address.substring(0, 8)}...)`);
-    try {
-      const start = Date.now();
-      const locked = await sdk.isLocked(address);
-      const duration = Date.now() - start;
-      addLog('success', `isLocked resolved in ${duration}ms`, { locked });
-    } catch (e: any) {
-      addLog('error', `isLocked failed`, { error: e.message, stack: e.stack });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="card">
-      <div className="card-title"><Lock size={18} /> Check Lock Status</div>
-      <div className="input-group">
-        <label className="input-label">User Stellar Address</label>
-        <input className="input-field" value={address} onChange={e => setAddress(e.target.value)} />
-      </div>
-      <button className="btn btn-primary" onClick={handleFetch} disabled={loading}>
-        {loading ? 'Checking...' : 'Execute isLocked()'}
       </button>
     </div>
   );
@@ -165,8 +95,8 @@ function Sidebar() {
           <input className="input-field" name="rpcUrl" value={config.rpcUrl} onChange={handleChange} />
         </div>
         <div className="input-group">
-          <label className="input-label">Network Passphrase</label>
-          <input className="input-field" name="networkPassphrase" value={config.networkPassphrase} onChange={handleChange} />
+          <label className="input-label">Relayer URL</label>
+          <input className="input-field" name="relayerUrl" value={config.relayerUrl} onChange={handleChange} />
         </div>
         <div className="input-group">
           <label className="input-label">Hub Contract Address</label>
@@ -218,10 +148,8 @@ function MainPlayground() {
         <Play size={16} /> Playground
       </div>
       <div className="column-content">
-        <GetSignerCard />
-        <RegisterSourceCard />
+        <ConnectSoulCard />
         <GetScoreCard />
-        <IsLockedCard />
       </div>
     </div>
   );
