@@ -1,6 +1,6 @@
 {
-  "name": "@zolvency/sdk",
-  "version": "0.1.0",
+  "name": "zolvency-sdk",
+  "version": "0.1.4",
   "description": "Professional TypeScript SDK for Zolvency Protocol on Stellar & EVM",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -9,13 +9,16 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
-    "dev": "tsup src/index.ts --format cjs,esm --watch --dts",
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean --platform browser --external @stellar/stellar-sdk --external passkey-kit --external @simplewebauthn/browser",
+    "dev": "tsup src/index.ts --format cjs,esm --watch --dts --platform browser --external @stellar/stellar-sdk --external passkey-kit --external @simplewebauthn/browser",
     "test": "vitest run",
     "demo": "tsx examples/demo.ts",
     "dev:playground": "cd playground && npm run dev",
     "lint": "tsc --noEmit",
     "docs": "typedoc"
+  },
+  "overrides": {
+    "@stellar/stellar-sdk": "$@stellar/stellar-sdk"
   },
   "keywords": [
     "stellar",
@@ -29,8 +32,10 @@
   "author": "Felipe Nunes",
   "license": "MIT",
   "devDependencies": {
-    "@stellar/stellar-sdk": "^13.0.0",
+    "@simplewebauthn/browser": "^9.0.1",
+    "@stellar/stellar-sdk": "^15.0.1",
     "@types/node": "^20.11.0",
+    "passkey-kit": "^0.12.0",
     "tslib": "^2.6.2",
     "tsup": "^8.0.1",
     "tsx": "^4.21.0",
@@ -38,7 +43,9 @@
     "typescript": "^5.3.3",
     "vitest": "^1.2.1"
   },
-  "dependencies": {
-    "@stellar/stellar-sdk": "^13.0.0"
+  "peerDependencies": {
+    "@simplewebauthn/browser": "^9.0.1",
+    "@stellar/stellar-sdk": ">=14.0.0",
+    "passkey-kit": "^0.12.0"
   }
 }

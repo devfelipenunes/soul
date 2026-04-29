@@ -1,11 +1,85 @@
 import React from 'react';
-import { Settings, Play, Terminal, Trash2, Search, Lock } from 'lucide-react';
+import { Settings, Play, Terminal, Trash2, Search, Lock, ShieldCheck, Database } from 'lucide-react';
 import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
 import './index.css';
 
+function GetSignerCard() {
+  const { sdk, addLog } = useWorkbench();
+  const [loading, setLoading] = React.useState(false);
+
+  const handleFetch = async () => {
+    if (!sdk) return;
+    setLoading(true);
+    addLog('info', 'Calling getSigner()...');
+    try {
+      const result = await sdk.getSigner();
+      addLog('success', 'getSigner resolved', { adminSigner: result });
+    } catch (e: any) {
+      addLog('error', 'getSigner failed', { error: e.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="card">
+      <div className="card-title"><ShieldCheck size={18} /> Get Hub Admin Signer</div>
+      <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+        Fetch the administrative signer of the current Zolvency Hub contract.
+      </p>
+      <button className="btn btn-primary" onClick={handleFetch} disabled={loading}>
+        {loading ? 'Fetching...' : 'Execute getSigner()'}
+      </button>
+    </div>
+  );
+}
+
+function RegisterSourceCard() {
+  const { sdk, addLog } = useWorkbench();
+  const [adminKey, setAdminKey] = React.useState('');
+  const [tokenAddress, setTokenAddress] = React.useState('CCGK3D3WGLQWOMDDQOM2V22PZXET7PAGNGMBW6WQ7GJNVZW4B2DLUZFA');
+  const [loading, setLoading] = React.useState(false);
+
+  const handleRegister = async () => {
+    if (!sdk) return;
+    setLoading(true);
+    addLog('info', `Attempting to register source: ${tokenAddress.substring(0, 8)}...`);
+    try {
+      // Direct call to registry client (requires signer/wallet integration in a real scenario)
+      addLog('info', 'Note: Registration usually requires admin signature. Simulation only if no wallet connected.');
+      const tx = await sdk.registry.register_token({ 
+        admin: adminKey || 'G... (Admin Public Key)', 
+        token_contract: tokenAddress 
+      });
+      addLog('success', 'register_token transaction built/simulated', tx);
+    } catch (e: any) {
+      addLog('error', 'register_token failed', { error: e.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="card">
+      <div className="card-title"><Database size={18} /> Register Token Source</div>
+      <div className="input-group">
+        <label className="input-label">Admin Public Key</label>
+        <input className="input-field" value={adminKey} onChange={e => setAdminKey(e.target.value)} placeholder="G..." />
+      </div>
+      <div className="input-group">
+        <label className="input-label">Token Contract ID</label>
+        <input className="input-field" value={tokenAddress} onChange={e => setTokenAddress(e.target.value)} />
+      </div>
+      <button className="btn btn-primary" onClick={handleRegister} disabled={loading}>
+        {loading ? 'Processing...' : 'Register Source'}
+      </button>
+    </div>
+  );
+}
+
 function GetScoreCard() {
   const { sdk, addLog } = useWorkbench();
-  const [address, setAddress] = React.useState('GDRUVDVEMV65AOYIUAQUHNVVTDN5V67K4762E44V6S6D6K6FNXTH5QEM');
+  const [address, setAddress] = React.useState('GAK35OYQKEHPETRCH2JW64OYYJH6WMSBDVRG2SFZ4XJLQ4OHOM45GV75');
   const [loading, setLoading] = React.useState(false);
 
   const handleFetch = async () => {
@@ -40,7 +114,7 @@ function GetScoreCard() {
 
 function IsLockedCard() {
   const { sdk, addLog } = useWorkbench();
-  const [address, setAddress] = React.useState('GDRUVDVEMV65AOYIUAQUHNVVTDN5V67K4762E44V6S6D6K6FNXTH5QEM');
+  const [address, setAddress] = React.useState('GDY6PAWAKXFMA2X2M6GMLBBSINMCWABT5XZLFAIXXBVVOOW727GOHV57');
   const [loading, setLoading] = React.useState(false);
 
   const handleFetch = async () => {
@@ -144,6 +218,8 @@ function MainPlayground() {
         <Play size={16} /> Playground
       </div>
       <div className="column-content">
+        <GetSignerCard />
+        <RegisterSourceCard />
         <GetScoreCard />
         <IsLockedCard />
       </div>

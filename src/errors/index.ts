@@ -18,3 +18,24 @@ export class ReputationLockedError extends ZolvencyError {
     this.name = "ReputationLockedError";
   }
 }
+
+export class ContractCallError extends ZolvencyError {
+  constructor(details: string) {
+    super(`Contract call failed: ${details}`);
+    this.name = "ContractCallError";
+  }
+}
+
+export class ContractResultError extends ZolvencyError {
+  constructor(details: string) {
+    super(`Contract returned error: ${details}`);
+    this.name = "ContractResultError";
+  }
+}
+
+export class UnsupportedContractMethodError extends ZolvencyError {
+  constructor(method: string) {
+    super(`Contract method not available in bindings: ${method}`);
+    this.name = "UnsupportedContractMethodError";
+  }
+}

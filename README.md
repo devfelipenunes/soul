@@ -7,41 +7,56 @@ The professional TypeScript SDK for the **Zolvency Protocol**. Build trust-based
 
 ## Features
 
+- **Biometric Identity**: Integrated Passkey support for "Atomic Onboarding" (Wallet + Identity in one click).
+- **Soulbound Tokens (SBT)**: Manage non-transferable reputation tokens linked to biometric proof.
 - **Hub Aggregation**: Fetch consolidated reputation scores across all Zolvency Spokes.
 - **Cross-Chain Ready**: Seamlessly manage reputation between Stellar (Soroban) and EVM (Axelar/LayerZero).
-- **Type-Safe**: Full TypeScript support with auto-generated Soroban bindings.
-- **Armor Up Security**: Built-in support for reputation locking and slashing.
 
 ## Installation
 
 ```bash
-npm install @zolvency/sdk
+npm install zolvency-sdk
 # or
-yarn add @zolvency/sdk
+yarn add zolvency-sdk
 ```
 
 ## Quick Start
 
 ### 1. Initialize the SDK
 ```typescript
-import { ZolvencySDK, PRESETS } from "@zolvency/sdk";
+import { ZolvencySDK, PRESETS } from "zolvency-sdk";
 
-const sdk = new ZolvencySDK({
-  ...PRESETS.TESTNET,
-  hubAddress: "CONTRACT_ID_HERE"
-});
+const sdk = new ZolvencySDK(PRESETS.TESTNET);
 ```
 
-### 2. Fetch User Reputation
+### 2. Biometric Onboarding (Soul Connect)
 ```typescript
-const userScore = await sdk.getScore("G...USER_ADDRESS");
-console.log("Aggregate Reputation:", userScore);
+// Registers a Passkey, Deploys a Smart Wallet, and Mints a Soul Token
+const session = await sdk.identity.connect("username");
+console.log("Welcome,", session.username);
+console.log("Wallet Address:", session.address);
+console.log("Soul ID:", session.soulId);
 ```
 
-### 3. Lock Reputation (For Lending Protocols)
+### 3. Verify Human Identity
 ```typescript
-// Lock for 30 days
-await sdk.lockReputation("G...USER_ADDRESS", 60 * 60 * 24 * 30);
+const isHuman = await sdk.identity.isHuman("G...USER_ADDRESS");
+if (isHuman) {
+  console.log("This user has a verified biometric identity.");
+}
+```
+
+### 4. Fetch User Reputation Summary
+```typescript
+const summary = await sdk.getScore("G...USER_ADDRESS");
+console.log("GitHub Tier:", summary.scores.github.details.tier);
+```
+
+## Build & Test
+
+```bash
+npm run build
+npm test
 ```
 
 ## Documentation

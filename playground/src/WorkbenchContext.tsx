@@ -28,7 +28,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState({
     rpcUrl: PRESETS.TESTNET.rpcUrl,
     networkPassphrase: PRESETS.TESTNET.networkPassphrase,
-    hubAddress: 'CAKC4ZOYRNP5T43OURK4H7H6UIOZ4DDBBHQGD736JTVIS6FNUXTH5QEM'
+    hubAddress: 'CAAFVZRKABOYNJV4GSFAWXSBX7F5VM3EKJ7K6RVKFVN2Z36VRKPFH3SV'
   });
   
   const [logs, setLogs] = useState<TraceLog[]>([]);
