@@ -13,6 +13,8 @@
     "dev": "tsup src/index.ts --format cjs,esm --watch --dts --platform browser --external @stellar/stellar-sdk --external passkey-kit --external @simplewebauthn/browser",
     "test": "vitest run",
     "demo": "tsx examples/demo.ts",
+    "simulate": "tsx simulator/agent_sandbox.ts",
+    "oracle": "tsx oracle/server.ts",
     "dev:playground": "cd playground && npm run dev",
     "lint": "tsc --noEmit",
     "docs": "typedoc"
@@ -49,7 +51,12 @@
     "passkey-kit": "^0.12.0"
   },
   "dependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "axios": "^1.16.0",
     "buffer": "^6.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
     "process": "^0.11.10"
   }
 }
