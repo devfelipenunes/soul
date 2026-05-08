@@ -31,6 +31,8 @@ export interface RegistrationResult {
   keyIdBase64: string;
   publicKeyHex: string;
   signedTxXdr: string;
+  encryptedVault: string;
+  soulId: string;
 }
 
 export interface AuthResult {
@@ -52,26 +54,63 @@ export class PasskeyManager {
   }
 
   /**
-   * Registra uma nova identidade biométrica e prepara o deploy da Smart Wallet.
+   * Criptografa dados sensíveis usando a senha do usuário e AES-GCM.
    */
-  async createIdentity(appName: string, userName: string, forceMobile = false): Promise<RegistrationResult> {
+  private async encryptVault(data: string, password: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const pwHash = await crypto.subtle.digest('SHA-256', encoder.encode(password));
+    
+    const key = await crypto.subtle.importKey(
+      'raw',
+      pwHash,
+      'AES-GCM',
+      false,
+      ['encrypt']
+    );
+
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const encrypted = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      encoder.encode(data)
+    );
+
+    const vault = {
+      version: "1",
+      iv: Buffer.from(iv).toString('base64'),
+      ciphertext: Buffer.from(new Uint8Array(encrypted)).toString('base64'),
+      timestamp: Date.now()
+    };
+
+    return JSON.stringify(vault);
+  }
+
+  /**
+   * Registra uma nova identidade biométrica soberana.
+   * O identificador (SoulID) é derivado automaticamente.
+   */
+  async createIdentity(appName: string, password?: string, forceMobile = false): Promise<RegistrationResult> {
+    if (!password || password.length < 8) {
+      throw new Error("Uma senha de segurança é obrigatória para proteger seu Vault Soberano.");
+    }
+
     const now = new Date();
-    const displayName = `${userName} (Zolvency)`;
     const hostname = window.location.hostname;
     const rpId = (hostname === '127.0.0.1' || hostname === 'localhost') ? undefined : hostname;
 
-    // IMPORTANTE: WebAuthn EXIGE ArrayBuffer para challenge e user.id
-    // Passar string causava o erro ".replace of undefined" interno do browser/polyfill
     const challenge = crypto.getRandomValues(new Uint8Array(32));
     const userId = crypto.getRandomValues(new Uint8Array(16));
+
+    // O userName agora é um placeholder interno ou derivado
+    const internalLabel = `Zolvency Sovereign Identity (${now.toLocaleDateString()})`;
 
     const publicKeyCredentialCreationOptions: PublicKeyCredentialCreationOptions = {
       challenge: challenge,
       rp: { name: appName, id: rpId },
       user: {
         id: userId,
-        name: userName,
-        displayName: displayName,
+        name: "sovereign_agent",
+        displayName: internalLabel,
       },
       pubKeyCredParams: [{ alg: -7, type: "public-key" }],
       authenticatorSelection: {
@@ -83,7 +122,7 @@ export class PasskeyManager {
       attestation: "none",
     };
 
-    console.log("[Zolvency SDK] Chamando navigator.credentials.create...");
+    console.log("[Zolvency SDK] Solicitando assinatura biométrica soberana...");
     const credential = (await navigator.credentials.create({
       publicKey: publicKeyCredentialCreationOptions,
     })) as PublicKeyCredential;
@@ -100,7 +139,7 @@ export class PasskeyManager {
     const keyId = new Uint8Array(credential.rawId);
     let pubKey = new Uint8Array(rawPublicKey);
     
-    // Normalização da chave Secp256r1 para 65 bytes (0x04 + X + Y)
+    // Normalização Secp256r1
     if (pubKey.length > 65) {
       pubKey = pubKey.slice(pubKey.length - 65);
     }
@@ -143,11 +182,26 @@ export class PasskeyManager {
     const builtTx = (TransactionBuilder as any).fromXDR(xdrBase64, this.config.networkPassphrase);
     (builtTx as any).sign(walletKeypair);
 
+    // SoulID Profissional: Prefixo SOUL + Hash curto do ContractID
+    const soulId = `SOUL-${contractId.slice(1, 9).toUpperCase()}`;
+
+    // Vault Soberano
+    const vaultData = JSON.stringify({
+      soulId,
+      keyId: Base64URL.encode(keyId),
+      contractId,
+      publicKey: Buffer.from(pubKey).toString('hex'),
+      createdAt: now.toISOString()
+    });
+    const encryptedVault = await this.encryptVault(vaultData, password);
+
     return {
       contractId,
+      soulId,
       keyIdBase64: Base64URL.encode(keyId),
       publicKeyHex: Buffer.from(pubKey).toString('hex'),
       signedTxXdr: (builtTx as any).toXDR('base64'),
+      encryptedVault,
     };
   }
 
