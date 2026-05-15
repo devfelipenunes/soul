@@ -173,6 +173,16 @@ export interface Client {
   get_epoch: ({root_anchor}: {root_anchor: string}, options?: MethodOptions) => Promise<AssembledTransaction<u64>>
 
   /**
+   * Construct and simulate a get_mandate transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
+   */
+  get_mandate: ({id}: {id: u64}, options?: MethodOptions) => Promise<AssembledTransaction<Option<Mandate>>>
+
+  /**
+   * Construct and simulate a get_mandate_state transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
+   */
+  get_mandate_state: ({mandate_id}: {mandate_id: u64}, options?: MethodOptions) => Promise<AssembledTransaction<Option<MandateState>>>
+
+  /**
    * Construct and simulate a get_signer transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
    */
   get_signer: (options?: MethodOptions) => Promise<AssembledTransaction<Result<string>>>
@@ -240,7 +250,7 @@ export interface Client {
   /**
    * Construct and simulate a verify_authority transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
    */
-  verify_authority: (args: {mandate_id: u64, agent: string, contract: string, function: string, transfer_amount: Option<i128>}, options?: MethodOptions) => Promise<AssembledTransaction<Result<boolean>>>
+  verify_authority: ({mandate_id, agent, contract, fn, transfer_amount}: {mandate_id: u64, agent: string, contract: string, fn: string, transfer_amount: Option<i128>}, options?: MethodOptions) => Promise<AssembledTransaction<Result<boolean>>>
 
   /**
    * Construct and simulate a export_reputation transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
@@ -364,6 +374,8 @@ export class Client extends ContractClient {
   }
   public readonly fromJSON = {
     get_epoch: this.txFromJSON<u64>,
+        get_mandate: this.txFromJSON<Option<Mandate>>,
+        get_mandate_state: this.txFromJSON<Option<MandateState>>,
         get_signer: this.txFromJSON<Result<string>>,
         get_zenith: this.txFromJSON<Map<string, u64>>,
         initialize: this.txFromJSON<Result<void>>,

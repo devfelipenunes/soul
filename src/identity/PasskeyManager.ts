@@ -1,6 +1,8 @@
 import { PasskeyKit, PasskeyClient } from 'passkey-kit';
 import { Buffer } from 'buffer';
 import { hash, Keypair, TransactionBuilder } from '@stellar/stellar-sdk';
+import { logger } from '../utils/Logger';
+
 
 /**
  * Utilitário nativo para Base64URL para comunicação com o Relayer
@@ -24,20 +26,21 @@ export interface PasskeyConfig {
   rpcUrl: string;
   networkPassphrase: string;
   walletWasmHash: string;
+  feePayerSeed?: string;
 }
+
 
 export interface RegistrationResult {
   contractId: string;
   keyIdBase64: string;
   publicKeyHex: string;
   signedTxXdr: string;
-  encryptedVault: string;
-  soulId: string;
 }
 
 export interface AuthResult {
   contractId: string;
   keyIdBase64: string;
+  publicKeyHex?: string;
 }
 
 export class PasskeyManager {
@@ -54,67 +57,32 @@ export class PasskeyManager {
   }
 
   /**
-   * Criptografa dados sensíveis usando a senha do usuário e AES-GCM.
+   * Registra uma nova identidade biométrica e prepara o deploy da Smart Wallet.
    */
-  private async encryptVault(data: string, password: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const pwHash = await crypto.subtle.digest('SHA-256', encoder.encode(password));
-    
-    const key = await crypto.subtle.importKey(
-      'raw',
-      pwHash,
-      'AES-GCM',
-      false,
-      ['encrypt']
-    );
+  async createIdentity(appName: string, forceMobile = false): Promise<RegistrationResult> {
+    const displayName = `Zolvency ID (${new Date().toLocaleDateString()})`;
+    const userName = `user_${Math.random().toString(36).substring(2, 10)}`;
 
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const encrypted = await crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv },
-      key,
-      encoder.encode(data)
-    );
-
-    const vault = {
-      version: "1",
-      iv: Buffer.from(iv).toString('base64'),
-      ciphertext: Buffer.from(new Uint8Array(encrypted)).toString('base64'),
-      timestamp: Date.now()
-    };
-
-    return JSON.stringify(vault);
-  }
-
-  /**
-   * Registra uma nova identidade biométrica soberana.
-   * O identificador (SoulID) é derivado automaticamente.
-   */
-  async createIdentity(appName: string, password?: string, forceMobile = false): Promise<RegistrationResult> {
-    if (!password || password.length < 8) {
-      throw new Error("Uma senha de segurança é obrigatória para proteger seu Vault Soberano.");
-    }
-
-    const now = new Date();
     const hostname = window.location.hostname;
     const rpId = (hostname === '127.0.0.1' || hostname === 'localhost') ? undefined : hostname;
 
+    // IMPORTANTE: WebAuthn EXIGE ArrayBuffer para challenge e user.id
+    // Passar string causava o erro ".replace of undefined" interno do browser/polyfill
     const challenge = crypto.getRandomValues(new Uint8Array(32));
     const userId = crypto.getRandomValues(new Uint8Array(16));
-
-    // O userName agora é um placeholder interno ou derivado
-    const internalLabel = `Zolvency Sovereign Identity (${now.toLocaleDateString()})`;
 
     const publicKeyCredentialCreationOptions: PublicKeyCredentialCreationOptions = {
       challenge: challenge,
       rp: { name: appName, id: rpId },
       user: {
         id: userId,
-        name: "sovereign_agent",
-        displayName: internalLabel,
+        name: userName,
+        displayName: displayName,
       },
       pubKeyCredParams: [{ alg: -7, type: "public-key" }],
       authenticatorSelection: {
-        residentKey: "required",
+        residentKey: "preferred",
+        requireResidentKey: false,
         userVerification: "preferred",
         authenticatorAttachment: forceMobile ? "cross-platform" : undefined,
       },
@@ -122,10 +90,11 @@ export class PasskeyManager {
       attestation: "none",
     };
 
-    console.log("[Zolvency SDK] Solicitando assinatura biométrica soberana...");
+    logger.debug("Calling navigator.credentials.create...");
     const credential = (await navigator.credentials.create({
       publicKey: publicKeyCredentialCreationOptions,
     })) as PublicKeyCredential;
+
 
     if (!credential) throw new Error("Falha ao criar credencial biométrica.");
 
@@ -139,7 +108,7 @@ export class PasskeyManager {
     const keyId = new Uint8Array(credential.rawId);
     let pubKey = new Uint8Array(rawPublicKey);
     
-    // Normalização Secp256r1
+    // Normalização da chave Secp256r1 para 65 bytes (0x04 + X + Y)
     if (pubKey.length > 65) {
       pubKey = pubKey.slice(pubKey.length - 65);
     }
@@ -153,7 +122,9 @@ export class PasskeyManager {
     const keyIdBuffer = Buffer.from(keyId);
     const salt = hash(keyIdBuffer); 
 
-    const walletKeypair = Keypair.fromRawEd25519Seed(hash(Buffer.from('kalepail')));
+    const seed = this.config.feePayerSeed || 'kalepail';
+    const walletKeypair = Keypair.fromRawEd25519Seed(hash(Buffer.from(seed)));
+
     
     const at = await PasskeyClient.deploy(
       {
@@ -177,31 +148,17 @@ export class PasskeyManager {
       }
     );
 
-    const contractId = (at as any).result.options.contractId;
-    const xdrBase64 = (at as any).toXDR('base64');
-    const builtTx = (TransactionBuilder as any).fromXDR(xdrBase64, this.config.networkPassphrase);
+    const contractId = (at as any).result.options.contractId as string;
+    const xdrBase64 = (at as any).toXDR('base64') as string;
+    const builtTx = TransactionBuilder.fromXDR(xdrBase64, this.config.networkPassphrase);
     (builtTx as any).sign(walletKeypair);
 
-    // SoulID Profissional: Prefixo SOUL + Hash curto do ContractID
-    const soulId = `SOUL-${contractId.slice(1, 9).toUpperCase()}`;
-
-    // Vault Soberano
-    const vaultData = JSON.stringify({
-      soulId,
-      keyId: Base64URL.encode(keyId),
-      contractId,
-      publicKey: Buffer.from(pubKey).toString('hex'),
-      createdAt: now.toISOString()
-    });
-    const encryptedVault = await this.encryptVault(vaultData, password);
 
     return {
       contractId,
-      soulId,
       keyIdBase64: Base64URL.encode(keyId),
       publicKeyHex: Buffer.from(pubKey).toString('hex'),
       signedTxXdr: (builtTx as any).toXDR('base64'),
-      encryptedVault,
     };
   }
 

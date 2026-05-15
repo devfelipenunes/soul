@@ -158,3 +158,87 @@ body {
   background: var(--success-bg);
   color: #6ee7b7;
 }
+
+/* Passport Card */
+.passport-container {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.02) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 0.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.passport-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.passport-id {
+  font-family: var(--font-mono);
+  font-weight: bold;
+  color: var(--accent-primary);
+  font-size: 1.25rem;
+}
+
+.passport-tier {
+  background: var(--accent-primary);
+  color: var(--text-primary);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.passport-svg {
+  width: 100%;
+  height: auto;
+  margin: 1rem 0;
+  display: flex;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 1rem;
+}
+
+.passport-svg svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.passport-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 0.5rem;
+}
+
+.detail-item .label {
+  color: var(--text-muted);
+}
+
+.detail-item .value {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.text-truncate {
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+

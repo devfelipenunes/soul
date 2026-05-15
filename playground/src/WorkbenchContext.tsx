@@ -14,7 +14,7 @@ interface WorkbenchState {
     rpcUrl: string;
     networkPassphrase: string;
     hubAddress: string;
-    relayerUrl: string;
+    paymasterUrl: string;
   };
   setConfig: (config: any) => void;
   sdk: ZolvencySDK | null;
@@ -29,8 +29,8 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState({
     rpcUrl: PRESETS.TESTNET.rpcUrl,
     networkPassphrase: PRESETS.TESTNET.networkPassphrase,
-    hubAddress: 'CAAFVZRKABOYNJV4GSFAWXSBX7F5VM3EKJ7K6RVKFVN2Z36VRKPFH3SV',
-    relayerUrl: '/api/passkey' // Usa o Proxy do Vite para evitar CORS
+    hubAddress: 'CCFN3VLCZOWVMERWJOOT6Y6L7YCSCRARK7YJOYKZ6YY66VSQUMZW7S7P',
+    paymasterUrl: '/api/passkey' // Usa o Proxy do Vite para evitar CORS
   });
   
   const [logs, setLogs] = useState<TraceLog[]>([]);
@@ -47,13 +47,15 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
 
   const clearLogs = () => setLogs([]);
 
-  // Memoize SDK instance
-  const sdk = React.useMemo(() => {
+  const [sdk, setSdk] = useState<ZolvencySDK | null>(null);
+
+  React.useEffect(() => {
     try {
-      return new ZolvencySDK(config);
+      const newSdk = new ZolvencySDK(config);
+      setSdk(newSdk);
     } catch (e: any) {
       addLog('error', 'Failed to initialize SDK', e.message);
-      return null;
+      setSdk(null);
     }
   }, [config]);
 

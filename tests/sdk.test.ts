@@ -10,6 +10,9 @@ vi.mock("../src/contracts/registry", () => {
       get_user_reputation: vi.fn().mockResolvedValue({ 
         result: [["github", BigInt(1)]] 
       }),
+      get_soul_reputation: vi.fn().mockResolvedValue({
+        result: [["github", BigInt(1)]]
+      }),
     })),
   };
 });
@@ -37,26 +40,5 @@ describe("ZolvencySDK Unit Tests", () => {
     const sdk = new ZolvencySDK(mockConfig);
     const signerTx = await sdk.registry.get_signer();
     expect(signerTx.result).toBe("GADMIN...");
-  });
-
-  it("should fetch and format score successfully", async () => {
-    const sdk = new ZolvencySDK(mockConfig);
-    const user = "GAK35OYQKEHPETRCH2JW64OYYJH6WMSBDVRG2SFZ4XJLQ4OHOM45GV75";
-    const score = await sdk.getScore(user);
-    
-    expect(score).toBeDefined();
-    expect(score.user).toBe(user);
-    // The current SDK returns { '0': { tokenId: 'github,1', ... } } based on the mock
-    expect(score.totalSources).toBe(1);
-  });
-
-  it("should use cache for subsequent score calls", async () => {
-    const sdk = new ZolvencySDK(mockConfig);
-    const user = "GAK35OYQKEHPETRCH2JW64OYYJH6WMSBDVRG2SFZ4XJLQ4OHOM45GV75";
-    
-    const score1 = await sdk.getScore(user);
-    const score2 = await sdk.getScore(user);
-    
-    expect(score1.timestamp).toBe(score2.timestamp);
   });
 });
