@@ -73,7 +73,9 @@ describe("Sovereign Identity Integration", () => {
       built: { 
         toXDR: () => "dummy_xdr",
         hash: () => Buffer.from("dummy_hash") 
-      } // Add this to satisfy the SDK's broadcast check
+      }, // Add this to satisfy the SDK's broadcast check
+      sign: vi.fn().mockResolvedValue(undefined),
+      send: vi.fn().mockResolvedValue({ status: "SUCCESS", hash: "TX_HASH", events: [] })
     });
 
     const password = "secure-password-123";

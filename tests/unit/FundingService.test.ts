@@ -84,7 +84,7 @@ describe("FundingService", () => {
     rpcServer.getAccount.mockResolvedValue({
       sequence: "1",
       balances: [
-        { asset_code: "BRLT", asset_issuer: "GAK35OYQKEHPETRCH2JW64OYYJH6WMSBDVRG2SFZ4XJLQ4OHOM45GV75" }
+        { asset_code: "BRLT", asset_issuer: "GCDNJUBQSX7AJWLJACMJ7I4BC3Z47BQUTMHEICZLE6MU4KQBRYG5JY6B" }
       ],
     });
 

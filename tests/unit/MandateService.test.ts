@@ -1,10 +1,39 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MandateService } from "../../src/services/MandateService";
+import { Keypair } from "@stellar/stellar-sdk";
+
+// Mock the Stellar SDK RPC parts to prevent real network calls
+vi.mock("@stellar/stellar-sdk", async () => {
+  const actual = await vi.importActual("@stellar/stellar-sdk") as any;
+  return {
+    ...actual,
+    rpc: {
+      ...actual.rpc,
+      Server: vi.fn().mockImplementation(() => ({
+        getAccount: vi.fn().mockImplementation(async (address) => {
+          return new actual.Account(address, "1");
+        }),
+        simulateTransaction: vi.fn().mockResolvedValue({
+          results: [],
+        }),
+        getLatestLedger: vi.fn().mockResolvedValue({
+          sequence: 12345,
+        }),
+      })),
+      assembleTransaction: vi.fn().mockReturnValue({
+        build: vi.fn().mockReturnValue({
+          hash: () => Buffer.from("tx_hash"),
+        }),
+      }),
+    },
+  };
+});
 
 // Mock the nexus contract client
 vi.mock("../../src/contracts/nexus", () => {
   return {
-    Client: vi.fn().mockImplementation(() => ({
+    Client: vi.fn().mockImplementation((options) => ({
+      options,
       issue_mandate: vi.fn().mockResolvedValue({
         built: { hash: () => Buffer.from("tx_hash") },
       }),
@@ -39,14 +68,16 @@ describe("MandateService", () => {
   beforeEach(() => {
     broadcaster = new TransactionBroadcaster(["http://localhost"]);
     service = new MandateService(broadcaster, {
-      rpcUrl: "http://localhost",
+      rpcUrl: "https://localhost",
       networkPassphrase: "test",
-      nexusContractId: "C123"
+      nexusContractId: "CCFAGREXAP3DEP3H2HOIZQ2GXBMYNNH65GKKQTVJZVAVEQ7EWF4AOSDW"
     });
   });
 
   it("should issue a mandate", async () => {
-    const hash = await service.issueMandate("issuer", "agent", 1000, 30);
+    const issuer = Keypair.random().publicKey();
+    const agent = Keypair.random().publicKey();
+    const hash = await service.issueMandate(issuer, agent, 1000, 30);
     expect(hash).toBe("tx_hash");
   });
 

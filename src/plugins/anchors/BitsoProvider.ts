@@ -26,6 +26,7 @@ export class BitsoProvider implements IAnchorProvider {
     }
 
     return {
+      type: "pix",
       qrCode: `00020126580014br.gov.bcb.pix0136bitsopix@bitso.com5204000053039865405${amount}.005802BR5913BITSO%20BRASIL6009SAO%20PAULO62070503***6304${Math.floor(Math.random()*9000)+1000}`,
       pixKey: "bitso-pix-key@bitso.com",
       transactionId

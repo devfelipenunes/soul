@@ -15,7 +15,8 @@
     "demo": "tsx examples/demo.ts",
     "dev:playground": "cd playground && npm run dev",
     "lint": "tsc --noEmit",
-    "docs": "typedoc"
+    "docs": "typedoc",
+    "postinstall": "node -e \"const fs = require('fs'); const path = require('path'); const mainPath = require.resolve('@stellar/stellar-sdk'); const targetStr = path.join('@stellar', 'stellar-sdk'); const idx = mainPath.lastIndexOf(targetStr); const sdkDir = mainPath.substring(0, idx + targetStr.length); ['lib', 'lib/minimal', 'lib/no-axios', 'lib/no-eventsource'].forEach(dir => { const target = path.join(sdkDir, dir, 'package.json'); if (fs.existsSync(path.join(sdkDir, dir))) { fs.copyFileSync(path.join(sdkDir, 'package.json'), target); } });\""
   },
   "overrides": {
     "@stellar/stellar-sdk": "$@stellar/stellar-sdk"

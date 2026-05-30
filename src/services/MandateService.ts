@@ -23,7 +23,7 @@ export class MandateService {
       rpcUrl: config.rpcUrl,
       networkPassphrase: config.networkPassphrase,
       contractId: config.nexusContractId,
-      publicKey: "GAK35OYQKEHPETRCH2JW64OYYJH6WMSBDVRG2SFZ4XJLQ4OHOM45GV75", // Use a valid G... address as source
+      publicKey: "GA37WDBK5OZ42SENCXVIJZSGPO36TLLPIRMWTL554JP5ZITFCRCJA4SU", // Use a valid G... address as source
     });
   }
 
@@ -35,7 +35,7 @@ export class MandateService {
     logger.info(`Issuing mandate: issuer=${issuer}, agent=${agent}, limit=${limit}, ttlDays=${ttlDays}`);
 
     // Use a manual approach to ensure the source account is handled correctly
-    const sourceAddress = "GAK35OYQKEHPETRCH2JW64OYYJH6WMSBDVRG2SFZ4XJLQ4OHOM45GV75";
+    const sourceAddress = "GA37WDBK5OZ42SENCXVIJZSGPO36TLLPIRMWTL554JP5ZITFCRCJA4SU";
     
     // Import SDK components (Now static)
     const contract = new Contract(this.nexusClient.options.contractId);
@@ -173,7 +173,7 @@ export class MandateService {
     
     // IMPORTANTE: Para Smart Wallets (C...), a conta de origem da transação Stellar 
     // DEVE ser um endereço G... (Relayer). A autorização da Smart Wallet ocorre internamente.
-    const relayerAddress = "GAK35OYQKEHPETRCH2JW64OYYJH6WMSBDVRG2SFZ4XJLQ4OHOM45GV75";
+    const relayerAddress = "GA37WDBK5OZ42SENCXVIJZSGPO36TLLPIRMWTL554JP5ZITFCRCJA4SU";
     const accountResponse = await rpcServer.getAccount(relayerAddress);
     
     // Buscar o ledger atual para calcular o live_until (limite do Soroban SAC)
